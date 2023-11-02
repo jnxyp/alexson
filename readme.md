@@ -19,11 +19,10 @@ string = ('{\n'
               '    }\n'
               '}')
 
-parser = AlexsonParser(string)
-node = parser.parse()
+root = AlexsonParser(string).parse()
 
-node['nav_buoy']['defaultName'] = String('导航浮标')
-print(node)
+root['nav_buoy']['defaultName'] = String('导航浮标')
+print(root)
 ```
 
 Output:
