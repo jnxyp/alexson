@@ -58,8 +58,16 @@ class AlexsonParser:
         # Parse empty spaces after the root object/array node
         node.children.extend(self._parse_non_json())
 
-        # Check if the alexson string is fully parsed
-        assert self.current() is None
+        # Consume optional trailing comma after root (e.g. some .faction files end with `},`)
+        if self.config.allow_trailing_comma and self.current() is not None and self.current().type == TokenType.COMMA:
+            self.advance()
+            node.children.extend(self._parse_non_json())
+
+        # Check if the alexson string is fully parsed (warn but don't fail on trailing garbage)
+        if self.current() is not None:
+            import warnings
+            row, col = self.get_token_pos(self.current())
+            warnings.warn(f'Unexpected trailing content at line {row}:{col}: {self.current()}')
 
         return node
 
@@ -74,9 +82,13 @@ class AlexsonParser:
         obj.children.append(LBrace())
         self.advance()
 
-        while self.current().type != TokenType.RBRACE:
+        while self.current() is not None and self.current().type != TokenType.RBRACE:
             # Parse empty spaces before the key
             obj.children.extend(self._parse_non_json())
+
+            # Re-check after consuming whitespace (handles empty objects)
+            if self.current() is None or self.current().type == TokenType.RBRACE:
+                break
 
             # Parse key (quoted string or unquoted identifier)
             if self.current().type == TokenType.STRING:
@@ -139,7 +151,7 @@ class AlexsonParser:
             return []
 
         empty_spaces: List[NonJson] = []
-        while self.current().type in NON_JSON_TYPES:
+        while self.current() is not None and self.current().type in NON_JSON_TYPES:
             if self.current().type == TokenType.NEWLINES:
                 empty_spaces.extend([NewLine()] * len(self.current().value))
             elif self.current().type == TokenType.SPACES:
@@ -158,9 +170,13 @@ class AlexsonParser:
         array.children.append(LBracket())
         self.advance()
 
-        while self.current().type != TokenType.RBRACKET:
+        while self.current() is not None and self.current().type != TokenType.RBRACKET:
             # Parse empty spaces before the value
             array.children.extend(self._parse_non_json())
+
+            # Re-check after consuming whitespace (handles empty arrays)
+            if self.current() is None or self.current().type == TokenType.RBRACKET:
+                break
 
             # Parse value
             value = self.parse_value()
@@ -171,12 +187,19 @@ class AlexsonParser:
             array.children.extend(self._parse_non_json())
 
             # Consume ','
-            if self.current().type == TokenType.COMMA:
+            if self.current() is not None and self.current().type == TokenType.COMMA:
                 array.children.append(Comma())
                 self.advance()
-            elif self.current().type != TokenType.RBRACKET:
+            elif self.current() is not None and self.current().type != TokenType.RBRACKET:
                 raise AlexsonParserException(f'Unexpected token {self.current()}, expecting "," or "]" here.',
                                              *self.get_token_pos(self.current()))
+
+            # Parse empty spaces after ','
+            array.children.extend(self._parse_non_json())
+
+            # If allow_trailing_comma is True, check if the next token is ']' and break the loop
+            if self.config.allow_trailing_comma and self.current() is not None and self.current().type == TokenType.RBRACKET:
+                break
 
         # Consume ']', add it to the syntax tree
         array.children.append(RBracket())

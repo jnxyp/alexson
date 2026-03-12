@@ -152,12 +152,16 @@ class Lexer:
             elif self.current_char == ':':
                 self.next()
                 token = Token(TokenType.COLON, ':')
-            elif self.current_char == ',':
+            elif self.current_char == ',' or self.current_char == ';':
                 self.next()
                 token = Token(TokenType.COMMA, ',')
             elif self.current_char.isalpha() or self.current_char == '_':
                 token = self.variable()
-            elif self.current_char.isdigit():
+            elif self.current_char.isdigit() or (
+                self.current_char == '-' and self.peek() is not None and (self.peek().isdigit() or self.peek() == '.')
+            ) or (
+                self.current_char == '.' and self.peek() is not None and self.peek().isdigit()
+            ):
                 token = self.number()
             else:
                 self.error(f'Unexpected character {self.current_char}')
@@ -235,8 +239,14 @@ class Lexer:
 
     def number(self) -> Token:
         number = ''
-        while self.current_char is not None and self.current_char.isdigit() or self.current_char == '.':
+        if self.current_char == '-':
             number += self.current_char
+            self.next()
+        while self.current_char is not None and (self.current_char.isdigit() or self.current_char == '.'):
+            number += self.current_char
+            self.next()
+        # consume optional Java-style float suffix (e.g. 1.1f)
+        if self.current_char in ('f', 'F', 'd', 'D', 'l', 'L'):
             self.next()
         return Token(TokenType.NUMBER, number)
 
