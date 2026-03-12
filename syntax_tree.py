@@ -189,15 +189,24 @@ class String(Literal):
     def to_alexson(self) -> str:
         if not self.quoted:
             return self.value
-        escaped = self.value.replace('\\', '\\\\').replace('"', '\\"')
+        escaped = (
+            self.value
+            .replace('\\', '\\\\')
+            .replace('"', '\\"')
+            .replace('\n', '\\n')
+            .replace('\t', '\\t')
+            .replace('\r', '\\r')
+        )
         return f'"{escaped}"'
 
 
 class Number(Literal):
     def __init__(self, value: Union[str, float]):
         super().__init__()
-        self.value: float = float(value)
         self.original_value: str = str(value)
+        # strip Java-style float/double/long suffix (e.g. 1f, 1.0d) for numeric value
+        numeric_str = str(value).rstrip('fFdDlL') if isinstance(value, str) else str(value)
+        self.value: float = float(numeric_str)
 
     def get_value(self) -> float:
         return self.value

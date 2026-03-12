@@ -60,6 +60,7 @@ class AlexsonParser:
 
         # Consume optional trailing comma after root (e.g. some .faction files end with `},`)
         if self.config.allow_trailing_comma and self.current() is not None and self.current().type == TokenType.COMMA:
+            node.children.append(Comma())
             self.advance()
             node.children.extend(self._parse_non_json())
 
@@ -213,8 +214,8 @@ class AlexsonParser:
             value = String(self.current().value)
         elif self.current().type == TokenType.NUMBER:
             try:
-                # check if the number is a valid float
-                float(self.current().value)
+                # check if the number is a valid float (strip Java-style suffix first)
+                float(self.current().value.rstrip('fFdDlL'))
                 value = Number(self.current().value)
             except ValueError:
                 raise AlexsonParserException(f'Invalid number value {self.current().value}',

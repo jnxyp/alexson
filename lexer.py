@@ -245,8 +245,9 @@ class Lexer:
         while self.current_char is not None and (self.current_char.isdigit() or self.current_char == '.'):
             number += self.current_char
             self.next()
-        # consume optional Java-style float suffix (e.g. 1.1f)
+        # preserve optional Java-style float suffix (e.g. 1.1f) in token value
         if self.current_char in ('f', 'F', 'd', 'D', 'l', 'L'):
+            number += self.current_char
             self.next()
         return Token(TokenType.NUMBER, number)
 
