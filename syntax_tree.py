@@ -133,6 +133,7 @@ class Array(BlockNode):
         return self.items[item]
 
     def __setitem__(self, key: int, value: AlexsonNode):
+        self.children[self.children.index(self.items[key])] = value
         self.items[key] = value
 
     def to_array(self) -> List:

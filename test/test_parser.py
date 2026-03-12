@@ -75,6 +75,13 @@ class TestParser(unittest.TestCase):
         self.assertEqual(node[0], Number(1))
         self.assertEqual(node[-1], Null())
 
+    def test_array_setitem(self):
+        # 验证修改数组元素后 to_alexson() 能正确还原
+        root = AlexsonParser('{"tips":["Hello", "World"]}').parse()
+        root['tips'][0] = String('你好')
+        root['tips'][1] = String('世界')
+        self.assertEqual(root.to_alexson(), '{"tips":["你好", "世界"]}')
+
     def test_parse_object(self):
         parser = AlexsonParser('{"a": 1, "b": 2.00, "c": 3.1415926, "d": "4", "e": true, "f": false, "g": null}')
         node = parser._parse_obj()
