@@ -78,11 +78,14 @@ class AlexsonParser:
             # Parse empty spaces before the key
             obj.children.extend(self._parse_non_json())
 
-            # Parse key
-            if self.current().type != TokenType.STRING:
+            # Parse key (quoted string or unquoted identifier)
+            if self.current().type == TokenType.STRING:
+                key = String(self.current().value)
+            elif self.current().type == TokenType.VARIABLE:
+                key = String(self.current().value, quoted=False)
+            else:
                 raise AlexsonParserException(f'Unexpected token {self.current()}', *self.get_token_pos(self.current()))
 
-            key = String(self.current().value)
             obj.children.append(key)
             self.advance()
 

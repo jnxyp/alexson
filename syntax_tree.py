@@ -168,14 +168,17 @@ class NonEditable(AlexsonNode, ABC):
 
 
 class String(Literal):
-    def __init__(self, value: str):
+    def __init__(self, value: str, quoted: bool = True):
         super().__init__()
         self.value: str = value
+        self.quoted: bool = quoted
 
     def get_value(self) -> str:
         return self.value
 
     def to_alexson(self) -> str:
+        if not self.quoted:
+            return self.value
         escaped = self.value.replace('\\', '\\\\').replace('"', '\\"')
         return f'"{escaped}"'
 

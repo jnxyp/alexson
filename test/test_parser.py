@@ -225,6 +225,53 @@ class TestParser(unittest.TestCase):
         )
         self.assertEqual(root.to_alexson(), expected)
 
+    def test_default_ranks_unquoted_key_roundtrip(self):
+        """
+        来源：data/world/factions/default_ranks.json
+        特征：object key 不带引号（如 name:"值"），与带引号的 key 混用
+        验证：解析后 to_alexson() 完全还原原始文本
+        """
+        string = (
+            '{\n'
+            '\t"ranks":{\n'
+            '\t\t"spaceSailor":{"name":"水手"},\n'
+            '\t\t"unknown":{name:"身份不明"},\n'
+            '\t\t"brother":{name:"修士"},\n'
+            '\t},\n'
+            '}'
+        )
+        root = AlexsonParser(string).parse()
+        self.assertEqual(root.to_alexson(), string)
+        self.assertEqual(root['ranks']['spaceSailor']['name'], String('水手'))
+        self.assertEqual(root['ranks']['unknown']['name'], String('身份不明'))
+
+    def test_default_ranks_unquoted_key_translate(self):
+        """
+        来源：data/world/factions/default_ranks.json
+        验证：修改无引号 key 对应的值后，key 仍不加引号，格式完整保留
+        """
+        string = (
+            '{\n'
+            '\t"ranks":{\n'
+            '\t\t"unknown":{name:"身份不明"},\n'
+            '\t\t"citizen":{"name":"公民"},\n'
+            '\t},\n'
+            '}'
+        )
+        root = AlexsonParser(string).parse()
+        root['ranks']['unknown']['name'] = String('Unknown')
+        root['ranks']['citizen']['name'] = String('Citizen')
+
+        expected = (
+            '{\n'
+            '\t"ranks":{\n'
+            '\t\t"unknown":{name:"Unknown"},\n'
+            '\t\t"citizen":{"name":"Citizen"},\n'
+            '\t},\n'
+            '}'
+        )
+        self.assertEqual(root.to_alexson(), expected)
+
     def test_planets_commented_out_line(self):
         """
         来源：game data/data/config/planets.json（nebula_center_average 条目）
