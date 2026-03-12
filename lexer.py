@@ -208,11 +208,24 @@ class Lexer:
         # read the string
         while self.current_char is not None and not (self.current_char == '"' and not escaped):
 
-            # check if the current character is escaped
-            if self.current_char == '\\':
+            if escaped:
+                # previous char was '\'; store the literal escaped character
+                if self.current_char == '\\':
+                    string += '\\'
+                elif self.current_char == '"':
+                    string += '"'
+                elif self.current_char == 'n':
+                    string += '\n'
+                elif self.current_char == 't':
+                    string += '\t'
+                elif self.current_char == 'r':
+                    string += '\r'
+                else:
+                    string += self.current_char
+                escaped = False
+            elif self.current_char == '\\':
                 escaped = True
             else:
-                escaped = False
                 string += self.current_char
 
             self.next()

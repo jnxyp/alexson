@@ -239,3 +239,4 @@ if __name__ == '__main__':
 
     root['nav_buoy']['defaultName'] = String('导航浮标')
     print(root)
+    print(root.to_dict_or_array())

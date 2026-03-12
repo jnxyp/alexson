@@ -34,6 +34,18 @@ class TestLexer(unittest.TestCase):
         token = lexer.string()
         self.assertEqual(token, Token(TokenType.STRING, 'I say "hello world"'))
 
+    def test_string_with_backslash(self):
+        # JSON: "\\" → stored value: single backslash
+        lexer = Lexer('"\\\\\"')
+        token = lexer.string()
+        self.assertEqual(token, Token(TokenType.STRING, '\\'))
+
+    def test_string_with_escape_sequences(self):
+        # JSON: "line1\nline2\ttab" → stored with actual newline and tab
+        lexer = Lexer('"line1\\nline2\\ttab"')
+        token = lexer.string()
+        self.assertEqual(token, Token(TokenType.STRING, 'line1\nline2\ttab'))
+
     def test_number(self):
         lexer = Lexer('1234"blabla"')
         token = lexer.number()

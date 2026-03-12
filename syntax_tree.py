@@ -33,10 +33,20 @@ class BlockNode(AlexsonNode, ABC):
         return ''.join([child.to_alexson() for child in self.children])
 
     def is_array(self) -> bool:
-        raise NotImplementedError()
+        return isinstance(self, Array)
 
     def is_object(self) -> bool:
-        raise NotImplementedError()
+        return isinstance(self, Object)
+
+    def to_dict_or_array(self) -> Union[Dict, List]:
+        if isinstance(self, Root):
+            return self.get_primary_obj().to_dict_or_array()
+        if self.is_array():
+            assert isinstance(self, Array)
+            return self.to_array()
+        else:
+            assert isinstance(self, Object)
+            return self.to_dict()
 
 
 class Root(BlockNode):
@@ -53,10 +63,10 @@ class Root(BlockNode):
         return self.primary_obj
 
     def is_array(self) -> bool:
-        return self.get_primary_obj().is_array()
+        return isinstance(self.get_primary_obj(), Array)
 
     def is_object(self) -> bool:
-        return self.get_primary_obj().is_object()
+        return isinstance(self.get_primary_obj(), Object)
 
     def __getitem__(self, item: Union[int, str]) -> AlexsonNode:
         return self.get_primary_obj()[item]
@@ -86,6 +96,18 @@ class Object(BlockNode):
         else:
             raise NotImplementedError("Cannot add new key to object yet...")
 
+    def to_dict(self) -> Dict:
+        d = {}
+        for key, (key_node, value_node) in self.dict.items():
+            if isinstance(value_node, Literal):
+                d[key] = value_node.get_value()
+            elif isinstance(value_node, Object):
+                d[key] = value_node.to_dict()
+            elif isinstance(value_node, Array):
+                d[key] = value_node.to_array()
+            else:
+                raise NotImplementedError()
+        return d
 
 class Array(BlockNode):
     def __init__(self):
@@ -104,15 +126,25 @@ class Array(BlockNode):
     def __setitem__(self, key: int, value: AlexsonNode):
         self.items[key] = value
 
+    def to_array(self) -> List:
+        array = []
+        for item in self.items:
+            if isinstance(item, Literal):
+                array.append(item.get_value())
+            elif isinstance(item, Object):
+                array.append(item.to_dict())
+            elif isinstance(item, Array):
+                array.append(item.to_array())
+            else:
+                raise NotImplementedError()
+        return array
+
 
 class Literal(AlexsonNode, ABC):
     def __init__(self):
         super().__init__()
 
     def get_value(self) -> Union[str, float, bool, None]:
-        raise NotImplementedError()
-
-    def set_value(self, value: Union[str, float, bool, None]):
         raise NotImplementedError()
 
     def __eq__(self, other):
@@ -143,11 +175,8 @@ class String(Literal):
     def get_value(self) -> str:
         return self.value
 
-    def set_value(self, value: str):
-        self.value = value
-
     def to_alexson(self) -> str:
-        escaped = self.value.replace('"', '\\"')
+        escaped = self.value.replace('\\', '\\\\').replace('"', '\\"')
         return f'"{escaped}"'
 
 
@@ -159,10 +188,6 @@ class Number(Literal):
 
     def get_value(self) -> float:
         return self.value
-
-    def set_value(self, value: Union[str, float]):
-        self.value: float = float(value)
-        self.original_value: str = str(value)
 
     def __eq__(self, other):
         return ((self.__class__ is other.__class__) and
@@ -181,9 +206,6 @@ class Variable(Literal):
     def get_value(self) -> str:
         return self.value
 
-    def set_value(self, value: str):
-        self.value = value
-
     def to_alexson(self) -> str:
         return self.value
 
@@ -196,9 +218,6 @@ class Boolean(Literal):
     def get_value(self) -> bool:
         return self.value
 
-    def set_value(self, value: bool):
-        self.value = value
-
     def to_alexson(self) -> str:
         return 'true' if self.value else 'false'
 
@@ -209,9 +228,6 @@ class Null(Literal):
 
     def get_value(self) -> None:
         return None
-
-    def set_value(self, value: None):
-        pass
 
     def to_alexson(self) -> str:
         return 'null'
