@@ -1,8 +1,8 @@
 from typing import List, Tuple, Union, Optional
 
-from config import Config
-from lexer import TokenType, Token, Lexer, EMPTY_SPACE_TYPES, NON_JSON_TYPES
-from syntax_tree import AlexsonNode, Literal, String, Number, Null, Boolean, Variable, Object, Array, \
+from .config import Config
+from .lexer import TokenType, Token, Lexer, EMPTY_SPACE_TYPES, NON_JSON_TYPES
+from .syntax_tree import AlexsonNode, Literal, String, Number, Null, Boolean, Variable, Object, Array, \
     NewLine, WhiteSpace, Tab, BlockNode, LBrace, Colon, Comma, RBrace, NonJson, Comment, LBracket, RBracket, Root
 
 

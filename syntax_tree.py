@@ -1,7 +1,7 @@
 from typing import List, Dict, Union, Tuple, Optional
 from ast import literal_eval
 from abc import ABC
-from lexer import Token, TokenType
+from .lexer import Token, TokenType
 
 
 class AlexsonNode(ABC):

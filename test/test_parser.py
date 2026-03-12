@@ -1,7 +1,7 @@
 import unittest
 
-from parser import AlexsonParser
-from syntax_tree import Boolean, Number, String, Variable, Null, BlockNode, Root
+from alexson.parser import AlexsonParser
+from alexson.syntax_tree import Boolean, Number, String, Variable, Null, BlockNode, Root
 
 # 以下测试用例取自《远行星号》游戏真实数据文件（game data/），
 # 用于验证解析器在实际游戏文件格式下的正确性。
