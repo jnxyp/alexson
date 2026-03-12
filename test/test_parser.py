@@ -225,6 +225,45 @@ class TestParser(unittest.TestCase):
         )
         self.assertEqual(root.to_alexson(), expected)
 
+    def test_settings_rename_key(self):
+        """
+        来源：data/config/settings.json - designTypeColors
+        特征：需要翻译 object 的 key 而非 value（design type 名称汉化）
+        验证：rename_key 后 key 变更、value 不变、格式完整保留；重复 key 报错
+        """
+        string = (
+            '{\n'
+            '\t"designTypeColors":{\n'
+            '\t\t"Low Tech":[209,110,91,255],\n'
+            '\t\t"Midline":[221,201,104,255],\n'
+            '\t\t"High Tech":[160,213,225,255],\n'
+            '\t},\n'
+            '}'
+        )
+        root = AlexsonParser(string).parse()
+        root['designTypeColors'].rename_key('Low Tech', '低技术')
+        root['designTypeColors'].rename_key('Midline', '中线')
+        root['designTypeColors'].rename_key('High Tech', '高技术')
+
+        expected = (
+            '{\n'
+            '\t"designTypeColors":{\n'
+            '\t\t"低技术":[209,110,91,255],\n'
+            '\t\t"中线":[221,201,104,255],\n'
+            '\t\t"高技术":[160,213,225,255],\n'
+            '\t},\n'
+            '}'
+        )
+        self.assertEqual(root.to_alexson(), expected)
+
+        # 不存在的 key 报 KeyError
+        with self.assertRaises(KeyError):
+            root['designTypeColors'].rename_key('NonExistent', '不存在')
+
+        # 目标 key 已存在报 KeyError
+        with self.assertRaises(KeyError):
+            root['designTypeColors'].rename_key('低技术', '中线')
+
     def test_default_ranks_unquoted_key_roundtrip(self):
         """
         来源：data/world/factions/default_ranks.json

@@ -96,6 +96,15 @@ class Object(BlockNode):
         else:
             raise NotImplementedError("Cannot add new key to object yet...")
 
+    def rename_key(self, old_key: str, new_key: str) -> None:
+        if old_key not in self.dict:
+            raise KeyError(f'Key {old_key!r} not found in object')
+        if new_key in self.dict:
+            raise KeyError(f'Key {new_key!r} already exists in object')
+        key_node, value_node = self.dict.pop(old_key)
+        key_node.value = new_key
+        self.dict[new_key] = (key_node, value_node)
+
     def to_dict(self) -> Dict:
         d = {}
         for key, (key_node, value_node) in self.dict.items():
