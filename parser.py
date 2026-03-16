@@ -120,9 +120,11 @@ class AlexsonParser:
 
             # Check if the key is already in the dictionary
             if key.get_value() in obj.dict:
-                raise AlexsonParserException(f'Duplicate key {key.get_value()}', *self.get_token_pos(self.current()))
-            # Add the key-value pair to the dictionary
-            obj.dict[key.get_value()] = (key, value)
+                if not self.config.allow_duplicate_keys:
+                    raise AlexsonParserException(f'Duplicate key {key.get_value()}', *self.get_token_pos(self.current()))
+                # allow_duplicate_keys: keep only first occurrence in dict; children already updated above
+            else:
+                obj.dict[key.get_value()] = (key, value)
 
             # Parse empty spaces after the value
             obj.children.extend(self._parse_non_json())

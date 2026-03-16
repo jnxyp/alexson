@@ -338,6 +338,157 @@ class TestParser(unittest.TestCase):
         root = AlexsonParser(string).parse()
         self.assertEqual(root.to_alexson(), string)
 
+    # -------------------------------------------------------------------------
+    # designTypeColors：中英文 key 共存结构（$key 翻译场景）
+    # -------------------------------------------------------------------------
+
+    def test_design_type_colors_roundtrip(self):
+        """
+        来源：localization/data/config/settings.json - designTypeColors
+        特征：object 内先有中文 key，再有一份人工复制的英文 key 原文，两组 key 均唯一（无重复）
+        验证：解析后 to_alexson() 完全还原原始文本（含注释、空行、trailing comma）
+        """
+        string = (
+            '{\n'
+            '\t"designTypeColors":{\n'
+            '\t\t"低技术":[209,110,91,255],\n'
+            '\t\t"中线":[221,201,104,255],\n'
+            '\t\t"高技术":[160,213,225,255],\n'
+            '\t\t"未知":[155,155,155,255], # special weapons\n'
+            '\t\t\n'
+            '\t\t"Low Tech":[209,110,91,255],\n'
+            '\t\t"Midline":[221,201,104,255],\n'
+            '\t\t"High Tech":[160,213,225,255],\n'
+            '\t\t"Unknown":[155,155,155,255], # special weapons\n'
+            '\t},\n'
+            '}'
+        )
+        root = AlexsonParser(string).parse()
+        self.assertEqual(root.to_alexson(), string)
+
+    def test_design_type_colors_access_both_lang_keys(self):
+        """
+        验证：中英文 key 均可独立访问，互不干扰
+        """
+        string = (
+            '{\n'
+            '\t"designTypeColors":{\n'
+            '\t\t"低技术":[209,110,91,255],\n'
+            '\t\t"中线":[221,201,104,255],\n'
+            '\t\t"Low Tech":[209,110,91,255],\n'
+            '\t\t"Midline":[221,201,104,255],\n'
+            '\t},\n'
+            '}'
+        )
+        root = AlexsonParser(string).parse()
+        dtc = root['designTypeColors']
+        self.assertIn('低技术', dtc.dict)
+        self.assertIn('Low Tech', dtc.dict)
+        # 两个 key 的 value 相同但是独立节点
+        self.assertEqual(dtc['低技术'].to_alexson(), '[209,110,91,255]')
+        self.assertEqual(dtc['Low Tech'].to_alexson(), '[209,110,91,255]')
+
+    def test_design_type_colors_setitem_only_affects_target_key(self):
+        """
+        验证：修改中文 key 的 value 不影响同值的英文 key（两者节点独立）
+        """
+        string = (
+            '{\n'
+            '\t"designTypeColors":{\n'
+            '\t\t"低技术":[209,110,91,255],\n'
+            '\t\t"Low Tech":[209,110,91,255],\n'
+            '\t},\n'
+            '}'
+        )
+        root = AlexsonParser(string).parse()
+        from alexson.syntax_tree import Array, Number
+        root['designTypeColors']['低技术'] = AlexsonParser('[1,2,3,255]').parse().get_primary_obj()
+
+        result = root.to_alexson()
+        self.assertIn('"低技术":[1,2,3,255]', result)
+        self.assertIn('"Low Tech":[209,110,91,255]', result)
+
+    # -------------------------------------------------------------------------
+    # allow_duplicate_keys：真实重复 key 场景
+    # -------------------------------------------------------------------------
+
+    def test_duplicate_keys_raises_by_default(self):
+        """
+        默认配置下，object 中出现重复 key 应抛出 AlexsonParserException
+        """
+        from alexson.parser import AlexsonParserException
+        string = '{"a":1,"b":2,"a":3}'
+        with self.assertRaises(AlexsonParserException):
+            AlexsonParser(string).parse()
+
+    def test_duplicate_keys_allowed_roundtrip(self):
+        """
+        allow_duplicate_keys=True 时，重复 key 正常解析，to_alexson() 完全还原原始文本
+        """
+        from alexson.config import Config
+        string = '{"a":1,"b":2,"a":3}'
+        config = Config(allow_duplicate_keys=True)
+        root = AlexsonParser(string, config).parse()
+        self.assertEqual(root.to_alexson(), string)
+
+    def test_duplicate_keys_setitem_affects_first_occurrence(self):
+        """
+        allow_duplicate_keys=True 时，__setitem__ 只修改第一次出现的 key 对应的 value
+        """
+        from alexson.config import Config
+        string = '{"a":1,"b":2,"a":3}'
+        config = Config(allow_duplicate_keys=True)
+        root = AlexsonParser(string, config).parse()
+        root.get_primary_obj()['a'] = Number(99)
+        # 第一个 "a" 改为 99，第二个 "a" 保持 3
+        self.assertEqual(root.to_alexson(), '{"a":99,"b":2,"a":3}')
+
+    def test_duplicate_keys_rename_affects_first_occurrence(self):
+        """
+        allow_duplicate_keys=True 时，rename_key 只重命名第一次出现的 key
+        """
+        from alexson.config import Config
+        string = '{"a":1,"b":2,"a":3}'
+        config = Config(allow_duplicate_keys=True)
+        root = AlexsonParser(string, config).parse()
+        root.get_primary_obj().rename_key('a', 'x')
+        # 第一个 "a" 改名为 "x"，第二个 "a" 原样保留
+        self.assertEqual(root.to_alexson(), '{"x":1,"b":2,"a":3}')
+
+    def test_duplicate_keys_design_type_colors_scenario(self):
+        """
+        模拟 designTypeColors 实际可能出现的重复 key 场景：
+        同一 object 内先出现中文 key，再出现同名英文 key（此处用同名模拟）
+        验证：set value 和 rename_key 均只作用于第一次出现
+        """
+        from alexson.config import Config
+        from alexson.parser import AlexsonParserException
+        # 构造一个有重复 key 的 designTypeColors 片段
+        string = (
+            '{\n'
+            '\t"designTypeColors":{\n'
+            '\t\t"Low Tech":[209,110,91,255],\n'
+            '\t\t"Midline":[221,201,104,255],\n'
+            '\t\t"Low Tech":[209,110,91,255],\n'  # 重复
+            '\t\t"Midline":[221,201,104,255],\n'  # 重复
+            '\t},\n'
+            '}'
+        )
+        # 默认不允许重复
+        with self.assertRaises(AlexsonParserException):
+            AlexsonParser(string).parse()
+
+        # 允许重复时可正常解析并还原
+        config = Config(allow_duplicate_keys=True)
+        root = AlexsonParser(string, config).parse()
+        self.assertEqual(root.to_alexson(), string)
+
+        # rename_key 只重命名第一个 "Low Tech"
+        root['designTypeColors'].rename_key('Low Tech', '低技术')
+        result = root.to_alexson()
+        self.assertIn('"低技术":[209,110,91,255]', result)
+        self.assertIn('"Low Tech":[209,110,91,255]', result)  # 第二个保持不变
+
     def test_planets_translate_preserves_commented_line(self):
         """
         来源：game data/data/config/planets.json
