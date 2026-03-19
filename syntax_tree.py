@@ -78,6 +78,7 @@ class Root(BlockNode):
 class Object(BlockNode):
     def __init__(self, ):
         super().__init__()
+        # IMPORTANT: dict 的插入顺序与 key 在文件中的位置一一对应，调用方可能依赖此顺序，任何操作都不得改变。
         self.dict: Dict[str, Tuple[String, AlexsonNode]] = {}
 
     def __eq__(self, other):
@@ -101,9 +102,11 @@ class Object(BlockNode):
             raise KeyError(f'Key {old_key!r} not found in object')
         if new_key in self.dict:
             raise KeyError(f'Key {new_key!r} already exists in object')
-        key_node, value_node = self.dict.pop(old_key)
+        key_node, value_node = self.dict[old_key]
         key_node.value = new_key
-        self.dict[new_key] = (key_node, value_node)
+        # 用 dict comprehension 原地替换 key，保持顺序不变。
+        # 不可用 pop + 重新插入——那会把该 key 移到末尾，调用方可能依赖 dict 的顺序。
+        self.dict = {(new_key if k == old_key else k): v for k, v in self.dict.items()}
 
     def to_dict(self) -> Dict:
         d = {}
