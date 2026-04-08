@@ -92,7 +92,11 @@ class Object(BlockNode):
 
     def __setitem__(self, key: str, value: AlexsonNode):
         if key in self.dict:
-            self.children[self.children.index(self.dict[key][1])] = value
+            old_value = self.dict[key][1]
+            for i, child in enumerate(self.children):
+                if child is old_value:
+                    self.children[i] = value
+                    break
             self.dict[key] = (self.dict[key][0], value)
         else:
             raise NotImplementedError("Cannot add new key to object yet...")
@@ -136,7 +140,11 @@ class Array(BlockNode):
         return self.items[item]
 
     def __setitem__(self, key: int, value: AlexsonNode):
-        self.children[self.children.index(self.items[key])] = value
+        old_item = self.items[key]
+        for i, child in enumerate(self.children):
+            if child is old_item:
+                self.children[i] = value
+                break
         self.items[key] = value
 
     def to_array(self) -> List:
