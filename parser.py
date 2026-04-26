@@ -1,3 +1,4 @@
+# pyright: reportOptionalMemberAccess=false, reportArgumentType=false, reportReturnType=false, reportIndexIssue=false
 from typing import List, Tuple, Union, Optional
 
 from .config import Config

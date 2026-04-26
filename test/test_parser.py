@@ -1,3 +1,4 @@
+# pyright: reportIndexIssue=false, reportAttributeAccessIssue=false, reportArgumentType=false
 import unittest
 
 from alexson.parser import AlexsonParser

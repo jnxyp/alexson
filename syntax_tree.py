@@ -1,4 +1,4 @@
-from typing import List, Dict, Union, Tuple, Optional
+from typing import Any, Dict, List, Optional, Tuple, Union, cast
 from ast import literal_eval
 from abc import ABC
 from .lexer import Token, TokenType
@@ -52,14 +52,15 @@ class BlockNode(AlexsonNode, ABC):
 class Root(BlockNode):
     def __init__(self):
         super().__init__()
-        self.primary_obj: Optional[Object, Array] = None
+        self.primary_obj: Optional[Union['Object', 'Array']] = None
 
     def get_primary_obj(self) -> Union['Object', 'Array']:
         if self.primary_obj is None:
             for child in self.children:
                 if isinstance(child, BlockNode):
-                    self.primary_obj = child
+                    self.primary_obj = cast(Union[Object, Array], child)
                     break
+        assert self.primary_obj is not None
         return self.primary_obj
 
     def is_array(self) -> bool:
@@ -69,10 +70,10 @@ class Root(BlockNode):
         return isinstance(self.get_primary_obj(), Object)
 
     def __getitem__(self, item: Union[int, str]) -> AlexsonNode:
-        return self.get_primary_obj()[item]
+        return cast(Any, self.get_primary_obj())[item]
 
     def __setitem__(self, key: Union[int, str], value: AlexsonNode):
-        self.get_primary_obj()[key] = value
+        cast(Any, self.get_primary_obj())[key] = value
 
 
 class Object(BlockNode):

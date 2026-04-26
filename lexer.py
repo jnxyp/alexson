@@ -158,9 +158,9 @@ class Lexer:
             elif self.current_char.isalpha() or self.current_char == '_':
                 token = self.variable()
             elif self.current_char.isdigit() or (
-                self.current_char == '-' and self.peek() is not None and (self.peek().isdigit() or self.peek() == '.')
+                self.current_char == '-' and (peek := self.peek()) is not None and (peek.isdigit() or peek == '.')
             ) or (
-                self.current_char == '.' and self.peek() is not None and self.peek().isdigit()
+                self.current_char == '.' and (peek := self.peek()) is not None and peek.isdigit()
             ):
                 token = self.number()
             else:
@@ -246,12 +246,13 @@ class Lexer:
             number += self.current_char
             self.next()
         # preserve optional Java-style float suffix (e.g. 1.1f) in token value
-        if self.current_char in ('f', 'F', 'd', 'D', 'l', 'L'):
+        if self.current_char is not None and self.current_char in ('f', 'F', 'd', 'D', 'l', 'L'):
             number += self.current_char
             self.next()
         return Token(TokenType.NUMBER, number)
 
     def variable(self) -> Token:
+        assert self.current_char is not None
         variable = self.current_char
         self.next()
 
