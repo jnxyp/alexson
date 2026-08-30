@@ -1,6 +1,6 @@
 # The lexical analyzer for a custom json-like language.
 from enum import Enum
-from typing import List, Optional, Tuple, Dict
+from typing import Dict, List, Optional, Tuple
 
 
 class TokenType(Enum):
@@ -24,11 +24,33 @@ class TokenType(Enum):
     TABS = 16
 
 
-LITERAL_TYPES = {TokenType.STRING, TokenType.NUMBER, TokenType.BOOLEAN, TokenType.NULL, TokenType.VARIABLE}
-NON_EDITABLE_TYPES = {TokenType.LBRACE, TokenType.RBRACE, TokenType.LBRACKET, TokenType.RBRACKET, TokenType.COLON,
-                      TokenType.COMMA, TokenType.COMMENT, TokenType.NEWLINES, TokenType.SPACES, TokenType.TABS}
-NON_JSON_TYPES = {TokenType.COMMENT, TokenType.NEWLINES, TokenType.SPACES, TokenType.TABS}
+LITERAL_TYPES = {
+    TokenType.STRING,
+    TokenType.NUMBER,
+    TokenType.BOOLEAN,
+    TokenType.NULL,
+    TokenType.VARIABLE,
+}
+NON_EDITABLE_TYPES = {
+    TokenType.LBRACE,
+    TokenType.RBRACE,
+    TokenType.LBRACKET,
+    TokenType.RBRACKET,
+    TokenType.COLON,
+    TokenType.COMMA,
+    TokenType.COMMENT,
+    TokenType.NEWLINES,
+    TokenType.SPACES,
+    TokenType.TABS,
+}
+NON_JSON_TYPES = {
+    TokenType.COMMENT,
+    TokenType.NEWLINES,
+    TokenType.SPACES,
+    TokenType.TABS,
+}
 EMPTY_SPACE_TYPES = {TokenType.SPACES, TokenType.TABS, TokenType.NEWLINES}
+
 
 # define tokens
 class Token:
@@ -37,8 +59,14 @@ class Token:
         self.value: str = value
 
     def __str__(self):
-        if self.type in [TokenType.COLON, TokenType.LBRACE, TokenType.RBRACE, TokenType.LBRACKET, TokenType.RBRACKET,
-                         TokenType.COMMA]:
+        if self.type in [
+            TokenType.COLON,
+            TokenType.LBRACE,
+            TokenType.RBRACE,
+            TokenType.LBRACKET,
+            TokenType.RBRACKET,
+            TokenType.COMMA,
+        ]:
             return f'{self.type.name}'
         elif self.type in [TokenType.SPACES, TokenType.TABS]:
             return f'{self.type.name}*{len(self.value)}'
@@ -74,7 +102,9 @@ class Lexer:
         self.pos: int = 0
         self.row: int = 1
         self.col: int = 0
-        self.current_char: Optional[str] = self.text[self.pos] if len(self.text) > 0 else None
+        self.current_char: Optional[str] = (
+            self.text[self.pos] if len(self.text) > 0 else None
+        )
         self.token_id_position_map: Dict[int, Tuple[int, int]] = {}
 
     def error(self, msg=''):
@@ -105,7 +135,7 @@ class Lexer:
         if peek_pos >= len(self.text):
             return None
         else:
-            return self.text[self.pos + 1:peek_pos + 1]
+            return self.text[self.pos + 1 : peek_pos + 1]
 
     def tokenize(self) -> List[Token]:
         tokens: List[Token] = []
@@ -157,10 +187,18 @@ class Lexer:
                 token = Token(TokenType.COMMA, ',')
             elif self.current_char.isalpha() or self.current_char == '_':
                 token = self.variable()
-            elif self.current_char.isdigit() or (
-                self.current_char == '-' and (peek := self.peek()) is not None and (peek.isdigit() or peek == '.')
-            ) or (
-                self.current_char == '.' and (peek := self.peek()) is not None and peek.isdigit()
+            elif (
+                self.current_char.isdigit()
+                or (
+                    self.current_char == '-'
+                    and (peek := self.peek()) is not None
+                    and (peek.isdigit() or peek == '.')
+                )
+                or (
+                    self.current_char == '.'
+                    and (peek := self.peek()) is not None
+                    and peek.isdigit()
+                )
             ):
                 token = self.number()
             else:
@@ -210,8 +248,9 @@ class Lexer:
         # skip the initial quote
         self.next()
         # read the string
-        while self.current_char is not None and not (self.current_char == '"' and not escaped):
-
+        while self.current_char is not None and not (
+            self.current_char == '"' and not escaped
+        ):
             if escaped:
                 # previous char was '\'; store the literal escaped character
                 if self.current_char == '\\':
@@ -242,11 +281,20 @@ class Lexer:
         if self.current_char == '-':
             number += self.current_char
             self.next()
-        while self.current_char is not None and (self.current_char.isdigit() or self.current_char == '.'):
+        while self.current_char is not None and (
+            self.current_char.isdigit() or self.current_char == '.'
+        ):
             number += self.current_char
             self.next()
         # preserve optional Java-style float suffix (e.g. 1.1f) in token value
-        if self.current_char is not None and self.current_char in ('f', 'F', 'd', 'D', 'l', 'L'):
+        if self.current_char is not None and self.current_char in (
+            'f',
+            'F',
+            'd',
+            'D',
+            'l',
+            'L',
+        ):
             number += self.current_char
             self.next()
         return Token(TokenType.NUMBER, number)
@@ -257,20 +305,23 @@ class Lexer:
         self.next()
 
         while self.current_char is not None and (
-                self.current_char.isalpha() or self.current_char.isdigit() or self.current_char == '_'):
+            self.current_char.isalpha()
+            or self.current_char.isdigit()
+            or self.current_char == '_'
+        ):
             variable += self.current_char
             self.next()
         return Token(TokenType.VARIABLE, variable)
 
 
 if __name__ == '__main__':
-    lexer = Lexer('''{
- 	   "nav_buoy":{
-			"baseId":"base_campaign \\"_objective",
-			"defaultName":"导航浮标", # used if name=null in addCustomEntity()   
-			"tags":["nav_buoy", "neutrino_high", "objective"],   
-			"layers":[STATIONS], # what layer(s) to render in. See CampaignEngineLayers.java for possible values
-		}
-	}''')
+    lexer = Lexer("""{
+        "nav_buoy":{
+            "baseId":"base_campaign \\"_objective",
+            "defaultName":"导航浮标", # used if name=null in addCustomEntity()
+            "tags":["nav_buoy", "neutrino_high", "objective"],
+            "layers":[STATIONS], # what layer(s) to render in. See CampaignEngineLayers.java for possible values
+        }
+    }""")
     print(' '.join([str(token) for token in lexer.tokenize()]))
     print(lexer.token_id_position_map)

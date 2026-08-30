@@ -1,7 +1,5 @@
-from typing import Any, Dict, List, Optional, Tuple, Union, cast
-from ast import literal_eval
 from abc import ABC
-from .lexer import Token, TokenType
+from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 
 class AlexsonNode(ABC):
@@ -77,7 +75,9 @@ class Root(BlockNode):
 
 
 class Object(BlockNode):
-    def __init__(self, ):
+    def __init__(
+        self,
+    ):
         super().__init__()
         # IMPORTANT: dict 的插入顺序与 key 在文件中的位置一一对应，调用方可能依赖此顺序，任何操作都不得改变。
         self.dict: Dict[str, Tuple[String, AlexsonNode]] = {}
@@ -100,7 +100,7 @@ class Object(BlockNode):
                     break
             self.dict[key] = (self.dict[key][0], value)
         else:
-            raise NotImplementedError("Cannot add new key to object yet...")
+            raise NotImplementedError('Cannot add new key to object yet...')
 
     def rename_key(self, old_key: str, new_key: str) -> None:
         if old_key not in self.dict:
@@ -125,6 +125,7 @@ class Object(BlockNode):
             else:
                 raise NotImplementedError()
         return d
+
 
 class Array(BlockNode):
     def __init__(self):
@@ -170,9 +171,11 @@ class Literal(AlexsonNode, ABC):
         raise NotImplementedError()
 
     def __eq__(self, other):
-        return ((self.__class__ is other.__class__) and
-                (self.get_value() == other.get_value()) and
-                (type(self.get_value()) is type(other.get_value())))
+        return (
+            (self.__class__ is other.__class__)
+            and (self.get_value() == other.get_value())
+            and (type(self.get_value()) is type(other.get_value()))
+        )
 
     def __hash__(self):
         return hash((self.get_value(), type(self.get_value()), self.__class__))
@@ -202,8 +205,7 @@ class String(Literal):
         if not self.quoted:
             return self.value
         escaped = (
-            self.value
-            .replace('\\', '\\\\')
+            self.value.replace('\\', '\\\\')
             .replace('"', '\\"')
             .replace('\n', '\\n')
             .replace('\t', '\\t')
@@ -217,16 +219,19 @@ class Number(Literal):
         super().__init__()
         self.original_value: str = str(value)
         # strip Java-style float/double/long suffix (e.g. 1f, 1.0d) for numeric value
-        numeric_str = str(value).rstrip('fFdDlL') if isinstance(value, str) else str(value)
+        numeric_str = (
+            str(value).rstrip('fFdDlL') if isinstance(value, str) else str(value)
+        )
         self.value: float = float(numeric_str)
 
     def get_value(self) -> float:
         return self.value
 
     def __eq__(self, other):
-        return ((self.__class__ is other.__class__) and
-                (type(self.get_value()) is type(other.get_value()))) and \
-            (abs(self.get_value() - other.get_value()) < 1e-6)
+        return (
+            (self.__class__ is other.__class__)
+            and (type(self.get_value()) is type(other.get_value()))
+        ) and (abs(self.get_value() - other.get_value()) < 1e-6)
 
     def to_alexson(self) -> str:
         return self.original_value

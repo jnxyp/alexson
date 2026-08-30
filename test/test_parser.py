@@ -2,7 +2,7 @@
 import unittest
 
 from alexson.parser import AlexsonParser
-from alexson.syntax_tree import Boolean, Number, String, Variable, Null, BlockNode, Root
+from alexson.syntax_tree import Boolean, Null, Number, Root, String, Variable
 
 # 以下测试用例取自《远行星号》游戏真实数据文件（game data/），
 # 用于验证解析器在实际游戏文件格式下的正确性。
@@ -71,7 +71,9 @@ class TestParser(unittest.TestCase):
         parser = AlexsonParser('[1, 2.00, 3.1415926, "4", true, false, null]')
         node = parser._parse_array()
 
-        self.assertEqual(node.to_alexson(), '[1, 2.00, 3.1415926, "4", true, false, null]')
+        self.assertEqual(
+            node.to_alexson(), '[1, 2.00, 3.1415926, "4", true, false, null]'
+        )
 
         self.assertEqual(node[0], Number(1))
         self.assertEqual(node[-1], Null())
@@ -84,28 +86,36 @@ class TestParser(unittest.TestCase):
         self.assertEqual(root.to_alexson(), '{"tips":["你好", "世界"]}')
 
     def test_parse_object(self):
-        parser = AlexsonParser('{"a": 1, "b": 2.00, "c": 3.1415926, "d": "4", "e": true, "f": false, "g": null}')
+        parser = AlexsonParser(
+            '{"a": 1, "b": 2.00, "c": 3.1415926, "d": "4", "e": true, "f": false, "g": null}'
+        )
         node = parser._parse_obj()
-        self.assertEqual(node.to_alexson(),
-                         '{"a": 1, "b": 2.00, "c": 3.1415926, "d": "4", "e": true, "f": false, "g": null}')
+        self.assertEqual(
+            node.to_alexson(),
+            '{"a": 1, "b": 2.00, "c": 3.1415926, "d": "4", "e": true, "f": false, "g": null}',
+        )
 
         self.assertEqual(node['a'], Number(1))
         self.assertEqual(node['b'], Number(2.00))
 
-        node['b'] = Number("3.00")
-        self.assertEqual(node['b'], Number("3.00"))
-        self.assertEqual(node.to_alexson(),
-                         '{"a": 1, "b": 3.00, "c": 3.1415926, "d": "4", "e": true, "f": false, "g": null}')
+        node['b'] = Number('3.00')
+        self.assertEqual(node['b'], Number('3.00'))
+        self.assertEqual(
+            node.to_alexson(),
+            '{"a": 1, "b": 3.00, "c": 3.1415926, "d": "4", "e": true, "f": false, "g": null}',
+        )
 
     def test_parser(self):
-        string = ('{\n'
-                  '    "nav_buoy": {\n'
-                  '        "baseId": "base_campaign \\"_objective",\n'
-                  '        "defaultName":"Nav Buoy", # used if name=null in addCustomEntity() \n'
-                  '        "tags":["nav_buoy", "neutrino_high", "objective"],\n'
-                  '        "layers":[STATIONS], # what layer(s) to render in. See CampaignEngineLayers.java for possible values\n'
-                  '    }\n'
-                  '}')
+        string = (
+            '{\n'
+            '    "nav_buoy": {\n'
+            '        "baseId": "base_campaign \\"_objective",\n'
+            '        "defaultName":"Nav Buoy", # used if name=null in addCustomEntity() \n'
+            '        "tags":["nav_buoy", "neutrino_high", "objective"],\n'
+            '        "layers":[STATIONS], # what layer(s) to render in. See CampaignEngineLayers.java for possible values\n'
+            '    }\n'
+            '}'
+        )
 
         parser = AlexsonParser(string)
         node = parser.parse()
@@ -113,14 +123,16 @@ class TestParser(unittest.TestCase):
 
         node['nav_buoy']['defaultName'] = String('导航浮标')
 
-        string_trans = ('{\n'
-                        '    "nav_buoy": {\n'
-                        '        "baseId": "base_campaign \\"_objective",\n'
-                        '        "defaultName":"导航浮标", # used if name=null in addCustomEntity() \n'
-                        '        "tags":["nav_buoy", "neutrino_high", "objective"],\n'
-                        '        "layers":[STATIONS], # what layer(s) to render in. See CampaignEngineLayers.java for possible values\n'
-                        '    }\n'
-                        '}')
+        string_trans = (
+            '{\n'
+            '    "nav_buoy": {\n'
+            '        "baseId": "base_campaign \\"_objective",\n'
+            '        "defaultName":"导航浮标", # used if name=null in addCustomEntity() \n'
+            '        "tags":["nav_buoy", "neutrino_high", "objective"],\n'
+            '        "layers":[STATIONS], # what layer(s) to render in. See CampaignEngineLayers.java for possible values\n'
+            '    }\n'
+            '}'
+        )
         self.assertEqual(node.to_alexson(), string_trans)
 
     # -------------------------------------------------------------------------
@@ -402,8 +414,9 @@ class TestParser(unittest.TestCase):
             '}'
         )
         root = AlexsonParser(string).parse()
-        from alexson.syntax_tree import Array, Number
-        root['designTypeColors']['低技术'] = AlexsonParser('[1,2,3,255]').parse().get_primary_obj()
+        root['designTypeColors']['低技术'] = (
+            AlexsonParser('[1,2,3,255]').parse().get_primary_obj()
+        )
 
         result = root.to_alexson()
         self.assertIn('"低技术":[1,2,3,255]', result)
@@ -418,6 +431,7 @@ class TestParser(unittest.TestCase):
         默认配置下，object 中出现重复 key 应抛出 AlexsonParserException
         """
         from alexson.parser import AlexsonParserException
+
         string = '{"a":1,"b":2,"a":3}'
         with self.assertRaises(AlexsonParserException):
             AlexsonParser(string).parse()
@@ -427,6 +441,7 @@ class TestParser(unittest.TestCase):
         allow_duplicate_keys=True 时，重复 key 正常解析，to_alexson() 完全还原原始文本
         """
         from alexson.config import Config
+
         string = '{"a":1,"b":2,"a":3}'
         config = Config(allow_duplicate_keys=True)
         root = AlexsonParser(string, config).parse()
@@ -437,6 +452,7 @@ class TestParser(unittest.TestCase):
         allow_duplicate_keys=True 时，__setitem__ 只修改第一次出现的 key 对应的 value
         """
         from alexson.config import Config
+
         string = '{"a":1,"b":2,"a":3}'
         config = Config(allow_duplicate_keys=True)
         root = AlexsonParser(string, config).parse()
@@ -449,6 +465,7 @@ class TestParser(unittest.TestCase):
         allow_duplicate_keys=True 时，rename_key 只重命名第一次出现的 key
         """
         from alexson.config import Config
+
         string = '{"a":1,"b":2,"a":3}'
         config = Config(allow_duplicate_keys=True)
         root = AlexsonParser(string, config).parse()
@@ -464,6 +481,7 @@ class TestParser(unittest.TestCase):
         """
         from alexson.config import Config
         from alexson.parser import AlexsonParserException
+
         # 构造一个有重复 key 的 designTypeColors 片段
         string = (
             '{\n'

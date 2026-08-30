@@ -10,14 +10,16 @@ A python library for manipulating formatted json data, while preserving the form
 from parser import AlexsonParser
 from syntax_tree import String
 
-string = ('{\n'
-              '    "nav_buoy": {\n'
-              '        "baseId": "base_campaign \\"_objective",\n'
-              '        "defaultName":"Nav Buoy", # used if name=null in addCustomEntity() \n'
-              '        "tags":["nav_buoy", "neutrino_high", "objective"],\n'
-              '        "layers":[STATIONS], # what layer(s) to render in. See CampaignEngineLayer for possible values\n'
-              '    }\n'
-              '}')
+string = (
+    '{\n'
+    '    "nav_buoy": {\n'
+    '        "baseId": "base_campaign \\"_objective",\n'
+    '        "defaultName":"Nav Buoy", # used if name=null in addCustomEntity() \n'
+    '        "tags":["nav_buoy", "neutrino_high", "objective"],\n'
+    '        "layers":[STATIONS], # what layer(s) to render in. See CampaignEngineLayer for possible values\n'
+    '    }\n'
+    '}'
+)
 
 root = AlexsonParser(string).parse()
 

@@ -1,6 +1,6 @@
 import unittest
 
-from alexson.lexer import Lexer, TokenType, Token
+from alexson.lexer import Lexer, Token, TokenType
 
 
 class TestLexer(unittest.TestCase):
@@ -36,7 +36,7 @@ class TestLexer(unittest.TestCase):
 
     def test_string_with_backslash(self):
         # JSON: "\\" → stored value: single backslash
-        lexer = Lexer('"\\\\\"')
+        lexer = Lexer('"\\\\"')
         token = lexer.string()
         self.assertEqual(token, Token(TokenType.STRING, '\\'))
 
@@ -67,7 +67,7 @@ class TestLexer(unittest.TestCase):
         expected = [
             Token(TokenType.BOOLEAN, 'true'),
             Token(TokenType.SPACES, ' '),
-            Token(TokenType.BOOLEAN, 'false')
+            Token(TokenType.BOOLEAN, 'false'),
         ]
         self.assertEqual(expected, tokens)
 
@@ -83,7 +83,7 @@ class TestLexer(unittest.TestCase):
             Token(TokenType.RBRACE, '}'),
             Token(TokenType.SPACES, ' '),
             Token(TokenType.COMMENT, '# comment bla bla '),
-            Token(TokenType.NEWLINES, '\n')
+            Token(TokenType.NEWLINES, '\n'),
         ]
         self.assertEqual(expected, tokens)
 
@@ -105,6 +105,6 @@ class TestLexer(unittest.TestCase):
             Token(TokenType.RBRACE, '}'),
             Token(TokenType.SPACES, ' '),
             Token(TokenType.COMMENT, '# comment bla bla '),
-            Token(TokenType.NEWLINES, '\n')
+            Token(TokenType.NEWLINES, '\n'),
         ]
         self.assertEqual(expected, tokens)

@@ -1,10 +1,30 @@
 # pyright: reportOptionalMemberAccess=false, reportArgumentType=false, reportReturnType=false, reportIndexIssue=false
-from typing import List, Tuple, Union, Optional
+from typing import List, Optional, Tuple
 
 from .config import Config
-from .lexer import TokenType, Token, Lexer, EMPTY_SPACE_TYPES, NON_JSON_TYPES
-from .syntax_tree import AlexsonNode, Literal, String, Number, Null, Boolean, Variable, Object, Array, \
-    NewLine, WhiteSpace, Tab, BlockNode, LBrace, Colon, Comma, RBrace, NonJson, Comment, LBracket, RBracket, Root
+from .lexer import NON_JSON_TYPES, Lexer, Token, TokenType
+from .syntax_tree import (
+    AlexsonNode,
+    Array,
+    Boolean,
+    Colon,
+    Comma,
+    Comment,
+    LBrace,
+    LBracket,
+    NewLine,
+    NonJson,
+    Null,
+    Number,
+    Object,
+    RBrace,
+    RBracket,
+    Root,
+    String,
+    Tab,
+    Variable,
+    WhiteSpace,
+)
 
 
 class AlexsonParserException(Exception):
@@ -23,7 +43,9 @@ class AlexsonParser:
         self.lexer = Lexer(text)
         self.tokens = self.lexer.tokenize()
         self._token_index = 0
-        self._current_token = self.tokens[self._token_index] if len(self.tokens) > 0 else None
+        self._current_token = (
+            self.tokens[self._token_index] if len(self.tokens) > 0 else None
+        )
         self.config = config
 
     def get_token_pos(self, token: Token) -> Tuple[int, int]:
@@ -54,13 +76,18 @@ class AlexsonParser:
             raise AlexsonParserException(
                 f'Unexpected token {self.current()}, expecting Object or Array '
                 f'at the top level of the alexson string',
-                *self.get_token_pos(self.current()))
+                *self.get_token_pos(self.current()),
+            )
 
         # Parse empty spaces after the root object/array node
         node.children.extend(self._parse_non_json())
 
         # Consume optional trailing comma after root (e.g. some .faction files end with `},`)
-        if self.config.allow_trailing_comma and self.current() is not None and self.current().type == TokenType.COMMA:
+        if (
+            self.config.allow_trailing_comma
+            and self.current() is not None
+            and self.current().type == TokenType.COMMA
+        ):
             node.children.append(Comma())
             self.advance()
             node.children.extend(self._parse_non_json())
@@ -68,8 +95,11 @@ class AlexsonParser:
         # Check if the alexson string is fully parsed (warn but don't fail on trailing garbage)
         if self.current() is not None:
             import warnings
+
             row, col = self.get_token_pos(self.current())
-            warnings.warn(f'Unexpected trailing content at line {row}:{col}: {self.current()}')
+            warnings.warn(
+                f'Unexpected trailing content at line {row}:{col}: {self.current()}'
+            )
 
         return node
 
@@ -77,8 +107,10 @@ class AlexsonParser:
         obj = Object()
 
         if self.current().type != TokenType.LBRACE:
-            raise AlexsonParserException(f'Unexpected token {self.current()}, expecting "{{" here.',
-                                         *self.get_token_pos(self.current()))
+            raise AlexsonParserException(
+                f'Unexpected token {self.current()}, expecting "{{" here.',
+                *self.get_token_pos(self.current()),
+            )
 
         # Consume '{', add it to the syntax tree
         obj.children.append(LBrace())
@@ -98,7 +130,10 @@ class AlexsonParser:
             elif self.current().type == TokenType.VARIABLE:
                 key = String(self.current().value, quoted=False)
             else:
-                raise AlexsonParserException(f'Unexpected token {self.current()}', *self.get_token_pos(self.current()))
+                raise AlexsonParserException(
+                    f'Unexpected token {self.current()}',
+                    *self.get_token_pos(self.current()),
+                )
 
             obj.children.append(key)
             self.advance()
@@ -108,7 +143,10 @@ class AlexsonParser:
 
             # Consume ':'
             if self.current().type != TokenType.COLON:
-                raise AlexsonParserException(f'Unexpected token {self.current()}', *self.get_token_pos(self.current()))
+                raise AlexsonParserException(
+                    f'Unexpected token {self.current()}',
+                    *self.get_token_pos(self.current()),
+                )
             obj.children.append(Colon())
             self.advance()
 
@@ -122,7 +160,10 @@ class AlexsonParser:
             # Check if the key is already in the dictionary
             if key.get_value() in obj.dict:
                 if not self.config.allow_duplicate_keys:
-                    raise AlexsonParserException(f'Duplicate key {key.get_value()}', *self.get_token_pos(self.current()))
+                    raise AlexsonParserException(
+                        f'Duplicate key {key.get_value()}',
+                        *self.get_token_pos(self.current()),
+                    )
                 # allow_duplicate_keys: keep only first occurrence in dict; children already updated above
             else:
                 obj.dict[key.get_value()] = (key, value)
@@ -135,13 +176,19 @@ class AlexsonParser:
                 obj.children.append(Comma())
                 self.advance()
             elif self.current().type != TokenType.RBRACE:
-                raise AlexsonParserException(f'Unexpected token {self.current()}', *self.get_token_pos(self.current()))
+                raise AlexsonParserException(
+                    f'Unexpected token {self.current()}',
+                    *self.get_token_pos(self.current()),
+                )
 
             # Parse empty spaces after ','
             obj.children.extend(self._parse_non_json())
 
             # If allow_trailing_comma is True, check if the next token is '}' and break the loop
-            if self.config.allow_trailing_comma and self.current().type == TokenType.RBRACE:
+            if (
+                self.config.allow_trailing_comma
+                and self.current().type == TokenType.RBRACE
+            ):
                 break
 
         # Consume '}', add it to the syntax tree
@@ -162,7 +209,9 @@ class AlexsonParser:
                 empty_spaces.extend([WhiteSpace()] * len(self.current().value))
             elif self.current().type == TokenType.TABS:
                 empty_spaces.extend([Tab()] * len(self.current().value))
-            elif self.current().type == TokenType.COMMENT and self.config.allow_comments:
+            elif (
+                self.current().type == TokenType.COMMENT and self.config.allow_comments
+            ):
                 empty_spaces.append(Comment(self.current().value))
             self.advance()
         return empty_spaces
@@ -194,15 +243,23 @@ class AlexsonParser:
             if self.current() is not None and self.current().type == TokenType.COMMA:
                 array.children.append(Comma())
                 self.advance()
-            elif self.current() is not None and self.current().type != TokenType.RBRACKET:
-                raise AlexsonParserException(f'Unexpected token {self.current()}, expecting "," or "]" here.',
-                                             *self.get_token_pos(self.current()))
+            elif (
+                self.current() is not None and self.current().type != TokenType.RBRACKET
+            ):
+                raise AlexsonParserException(
+                    f'Unexpected token {self.current()}, expecting "," or "]" here.',
+                    *self.get_token_pos(self.current()),
+                )
 
             # Parse empty spaces after ','
             array.children.extend(self._parse_non_json())
 
             # If allow_trailing_comma is True, check if the next token is ']' and break the loop
-            if self.config.allow_trailing_comma and self.current() is not None and self.current().type == TokenType.RBRACKET:
+            if (
+                self.config.allow_trailing_comma
+                and self.current() is not None
+                and self.current().type == TokenType.RBRACKET
+            ):
                 break
 
         # Consume ']', add it to the syntax tree
@@ -221,8 +278,10 @@ class AlexsonParser:
                 float(self.current().value.rstrip('fFdDlL'))
                 value = Number(self.current().value)
             except ValueError:
-                raise AlexsonParserException(f'Invalid number value {self.current().value}',
-                                             *self.get_token_pos(self.current()))
+                raise AlexsonParserException(
+                    f'Invalid number value {self.current().value}',
+                    *self.get_token_pos(self.current()),
+                )
         elif self.current().type == TokenType.NULL:
             value = Null()
         elif self.current().type == TokenType.BOOLEAN:
@@ -231,8 +290,10 @@ class AlexsonParser:
             elif self.current().value == 'false':
                 value = Boolean(False)
             else:
-                raise AlexsonParserException(f'Invalid boolean value {self.current().value}',
-                                             *self.get_token_pos(self.current()))
+                raise AlexsonParserException(
+                    f'Invalid boolean value {self.current().value}',
+                    *self.get_token_pos(self.current()),
+                )
         elif self.current().type == TokenType.VARIABLE:
             value = Variable(self.current().value)
         # Nested structures
@@ -241,14 +302,21 @@ class AlexsonParser:
         elif self.current().type == TokenType.LBRACKET:
             return self._parse_array()
         else:
-            raise AlexsonParserException(f'Unexpected token {self.current()}', *self.get_token_pos(self.current()))
+            raise AlexsonParserException(
+                f'Unexpected token {self.current()}',
+                *self.get_token_pos(self.current()),
+            )
 
         self.advance()
         return value
 
     def advance(self) -> Token:
         self._token_index += 1
-        self._current_token = self.tokens[self._token_index] if self._token_index < len(self.tokens) else None
+        self._current_token = (
+            self.tokens[self._token_index]
+            if self._token_index < len(self.tokens)
+            else None
+        )
         return self._current_token
 
     def current(self) -> Optional[Token]:
@@ -256,14 +324,16 @@ class AlexsonParser:
 
 
 if __name__ == '__main__':
-    string = ('{\n'
-              '    "nav_buoy": {\n'
-              '        "baseId": "base_campaign \\"_objective",\n'
-              '        "defaultName":"Nav Buoy", # used if name=null in addCustomEntity() \n'
-              '        "tags":["nav_buoy", "neutrino_high", "objective"],\n'
-              '        "layers":[STATIONS], # what layer(s) to render in. See CampaignEngineLayer for possible values\n'
-              '    }\n'
-              '}')
+    string = (
+        '{\n'
+        '    "nav_buoy": {\n'
+        '        "baseId": "base_campaign \\"_objective",\n'
+        '        "defaultName":"Nav Buoy", # used if name=null in addCustomEntity() \n'
+        '        "tags":["nav_buoy", "neutrino_high", "objective"],\n'
+        '        "layers":[STATIONS], # what layer(s) to render in. See CampaignEngineLayer for possible values\n'
+        '    }\n'
+        '}'
+    )
 
     root = AlexsonParser(string).parse()
 
